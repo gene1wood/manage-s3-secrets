@@ -117,7 +117,7 @@ def collect_arguments(argv):
                                        help='sub-command help')
     parsers['get'] = subparsers.add_parser('get', help='get help')
     parsers['get'].add_argument('remotefile',
-                                help='Path and filename to fetch')
+                                help='Filename to fetch')
     parsers['get'].add_argument('-g', '--gpgkey', type=type_filename,
                                 help='GPG private key to decrypt the file '
                                 'with')
@@ -137,6 +137,7 @@ def main():
     args = collect_arguments(sys.argv)
     logging.basicConfig(level=args.loglevel)
     secrets = Secrets(args)
+    result = secrets.run()
 
 
 if __name__ == '__main__':
