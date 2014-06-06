@@ -11,6 +11,7 @@ import boto.s3.key
 import tempfile
 import gnupg
 import shutil
+import logging
 
 class Secrets():
 
@@ -51,6 +52,8 @@ class Secrets():
         k = boto.s3.key.Key(self.bucket)
         k.key = os.path.join(self.args.path, self.args.remotefile)
         self.bytes_written = k.set_contents_from_string(content)
+        logging.info('Wrote %s bytes to file %s in bucket %s'
+                      % (self.bytes_written, k.key, self.bucket.name))
         return True if self.bytes_written > 0 else False
 
     def delete(self):
@@ -80,11 +83,21 @@ def type_filename(filename, mode='r'):
     else:
         return open(filename, mode)
 
+def type_loglevel(level):
+    try:
+        result = getattr(logging, level.upper())
+    except AttributeError:
+        raise argparse.ArgumentTypeError("'%s' is not a valid log level. "
+                                         "Please use %s" % (level,
+                                         [x for x in logging._levelNames.keys()
+                                          if isinstance(x, str)]))
+    return result
 
 def collect_arguments(argv):
     defaults = {}
     defaults['bucket'] = "net.mozaws.ops.hiera-secrets"
     defaults['path'] = "type/"
+    defaults['loglevel'] = "INFO"
     parser = argparse.ArgumentParser(description='Manage s3 stored secrets')
     parser.add_argument('-b', '--bucket',
                         default=defaults['bucket'],
@@ -94,6 +107,10 @@ def collect_arguments(argv):
                         default=defaults['path'],
                         help='S3 path to get secrets from or put secrets '
                         'in (default : %s)' % defaults['path'])
+    parser.add_argument('-l', '--loglevel', type=type_loglevel,
+                        default=defaults['loglevel'],
+                        help='Log level verbosity (default : %s)'
+                        % defaults['loglevel'])
 
     parsers = {}
     subparsers = parser.add_subparsers(dest='action',
@@ -118,6 +135,7 @@ def collect_arguments(argv):
 
 def main():
     args = collect_arguments(sys.argv)
+    logging.basicConfig(level=args.loglevel)
     secrets = Secrets(args)
 
 
