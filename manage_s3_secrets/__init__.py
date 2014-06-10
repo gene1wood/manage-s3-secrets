@@ -29,7 +29,9 @@ class Secrets():
         if self.args.action == 'put':
             return self.put()
         elif self.args.action == 'get':
-            return self.get()
+            result = self.get()
+            print result,
+            return result
 
     def encrypt(self, file_handle):
         try:
@@ -63,14 +65,18 @@ class Secrets():
     def get(self):
         if self.args.gpgkey and not self.args.remotefile.endswith('.gpg'):
             self.args.remotefile += '.gpg'
-        k = self.bucket.get_key(os.path.join(self.args.path, self.args.remotefile))
+        k = self.bucket.get_key(os.path.join(self.args.path,
+                                             self.args.remotefile))
         content = k.get_contents_as_string()
+        logging.debug('Fetched content "%s"', content)
         if self.args.gpgkey:
             try:
                 gpg_home_dir = tempfile.mkdtemp()
                 gpg = gnupg.GPG(gnupghome=gpg_home_dir)
                 import_result = gpg.import_keys(self.args.gpgkey.read())
+                logging.debug('GPG key import result "%s"', import_result)
                 content = gpg.decrypt(content).data
+                logging.debug('Content decrypted to "%s"', content)
             finally:
                 shutil.rmtree(gpg_home_dir)
         return content
